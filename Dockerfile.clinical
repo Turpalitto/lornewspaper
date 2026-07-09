@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1.7
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+COPY --link pyproject.toml .
+RUN pip install --no-cache-dir "lornews @ git+https://github.com/anomalyco/lornewspaper@v1.0"
+RUN pip install --no-cache-dir fastapi pydantic structlog httpx uvicorn[standard]
+
+COPY --link clinical_assistant/ ./clinical_assistant/
+COPY --link scripts/ ./scripts/
+
+FROM python:3.12-slim AS runner
+RUN groupadd -r app && useradd -r -g app app
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /build/clinical_assistant /app/clinical_assistant
+COPY --link pyproject.toml /app/
+
+WORKDIR /app
+USER app
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=15s --retries=3 \
+  CMD python -c "import http.client; c=http.client.HTTPConnection('localhost:8000'); c.request('GET','/api/v1/clinical/health'); r=c.getresponse(); exit(0 if r.status==200 else 1)"
+
+CMD ["uvicorn", "clinical_assistant.app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

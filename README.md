@@ -1,116 +1,207 @@
-# SearchService
+<img src="https://img.shields.io/badge/python-3.12-blue" alt="Python"> <img src="https://img.shields.io/badge/next.js-15-black" alt="Next.js"> <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+<img src="https://img.shields.io/github/actions/workflow/status/anomalyco/lornewspaper/ci.yml?label=CI" alt="CI">
+<img src="https://img.shields.io/github/actions/workflow/status/anomalyco/lornewspaper/release.yml?label=Release" alt="Release">
+<img src="https://img.shields.io/badge/tests-288%20passing-brightgreen" alt="Tests">
 
-Extensible async literature search over multiple academic sources through a
-single unified interface.
+# LORNEWS
 
-Supported providers:
+**Open-source academic research platform. Search, ingest, and ask questions about millions of scientific papers.**
 
-- **PubMed** — NCBI E-utilities (esearch + efetch)
-- **Europe PMC** — REST API
-- **OpenAlex** — REST API
+Search across PubMed, Europe PMC, and OpenAlex. Download full-text PDFs. Extract structure (sections, references, tables, figures). Index in a vector knowledge base. Ask questions with AI-powered answers and real citations.
+
+```bash
+docker compose --profile optional up -d
+# → Frontend at http://localhost:3000
+# → API at http://localhost:8000/api/v1
+# → Docs at http://localhost:8000/api/v1/docs
+```
+
+---
 
 ## Features
 
-- Unified `Article` model for every source.
-- One provider per source, behind a `BaseProvider` ABC (SOLID / DIP).
-- Transient-only retry (network, timeout, HTTP 429, 5xx) with `Retry-After`.
-- Per-provider token-bucket rate limiting.
-- Structured logging (structlog): provider, endpoint, query, elapsed, retries,
-  status_code, result_count.
-- Shared `httpx.AsyncClient` (connection pooling, keep-alive, User-Agent).
-- Concurrent fan-out with a configurable semaphore and **partial-failure
-  isolation** — one broken source never sinks the whole search.
-- Deduplication (DOI → PMID → PMCID → title similarity) with metadata merge
-  and provenance tracking.
+🔍 **Multi-provider search** — PubMed, Europe PMC, OpenAlex. Concurrent, deduplicated, provider-isolated.
 
-## Install
+📥 **Full ingest pipeline** — Search → Download → Process → Index → Query. Automated end-to-end.
+
+📄 **PDF extraction** — Sections, references, tables, figures, markdown. No GROBID required.
+
+🧠 **RAG question answering** — Embed questions, retrieve chunks, generate answers with citations.
+
+📊 **Knowledge base** — Chunking (3 strategies), embedding (4 providers), vector storage (Chroma/FAISS/Qdrant).
+
+🎨 **Modern frontend** — Next.js 15, dark/light theme, responsive, 7 pages.
+
+🔧 **Pluggable architecture** — Swap LLM providers, embedding models, vector stores without code changes.
+
+---
+
+## Quick Start
+
+### Docker (recommended)
 
 ```bash
-pip install -r requirements.txt
-# dev tooling (lint/type/tests):
-pip install -e ".[test,dev]"
+# Clone
+git clone https://github.com/anomalyco/lornewspaper && cd lornewspaper
+
+# Start everything
+cp .env.example .env
+docker compose --profile optional up -d
+
+# Verify
+curl http://localhost:8000/api/v1/health
 ```
 
-## Usage
+### Local development
 
-```python
-import asyncio
-from search_service import SearchService
+```bash
+# Backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt && pip install -e .
+uvicorn api.app:app --reload --port 8000
 
-
-async def main():
-    svc = SearchService()  # reads default settings (3 providers enabled)
-    try:
-        # Search everywhere, deduplicated + merged:
-        articles = await svc.search_all("CRISPR cancer therapy", limit=20)
-        for a in articles:
-            print(a.title, a.year, a.doi, a.provenance)
-
-        # Single provider:
-        pm = await svc.search_by_provider("p53", "pubmed", limit=5)
-
-        # Date scoped:
-        recent = await svc.search_by_date("long covid", 2021, 2023, limit=10)
-
-        # By PubMed ID (merged across sources):
-        by_pmid = await svc.search_by_pmid("32972414")
-    finally:
-        await svc.aclose()
-
-
-asyncio.run(main())
+# Frontend (separate terminal)
+cd web && npm install && npm run dev
 ```
 
-`SearchService` is an async context manager alternative:
+---
 
-```python
-async with SearchService() as svc:
-    ...
+## Screenshots
+
+```
+┌─────────────────────────────────────────────────┐
+│  LORNEWS                                         │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────┐ │
+│  │ Search   │ │Documents │ │   Ask    │ │Ingest│ │
+│  │Literature│ │          │ │Question  │ │      │ │
+│  └──────────┘ └──────────┘ └──────────┘ └─────┘ │
+│  Academic literature research platform           │
+└─────────────────────────────────────────────────┘
 ```
 
-## Configuration
+Pages: Home dashboard | Search with results | Document detail | RAG Q&A | Ingest pipeline | System settings
 
-`search_service/config.py` exposes `Settings` and `ProviderConfig`. Override
-defaults (timeouts, rate limits, concurrency, log level) and pass to
-`SearchService(settings=...)`.
+---
 
-## Structured logging
+## API Examples
 
-```python
-from search_service.logging_config import configure_logging
+```bash
+# Search
+curl -X POST http://localhost:8000/api/v1/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "transformer neural network", "max_results": 5}'
 
-configure_logging("INFO", json_logs=True)
+# Ingest
+curl -X POST http://localhost:8000/api/v1/ingest \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "attention is all you need", "max_results": 3}'
+
+# Ask
+curl -X POST http://localhost:8000/api/v1/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "What are the key contributions of the transformer paper?"}'
+
+# List documents
+curl http://localhost:8000/api/v1/documents
+
+# Health
+curl http://localhost:8000/api/v1/health
 ```
 
-Every provider call emits one structured line with: provider, endpoint, query,
-elapsed_ms, retries, status_code, result_count.
+---
 
-## Errors
+## Architecture
 
-- `SearchService.search_by_provider` raises `SearchServiceError`
-  (subclass of `ValueError`) for an unknown/disabled provider.
-- A failing provider never aborts the whole search: `search_all` /
-  `search_by_pmid` isolate per-provider errors and return the surviving
-  results.
-- Retries are transient-only (network, timeout, HTTP 429, 5xx) and honour
-  `Retry-After` via the rate limiter.
+```
+Search ──► Download ──► Process ──► Index ──► Embed ──► Ask
+  │           │            │           │         │         │
+  PubMed     PMC         PyMuPDF     SQLite    Ollama    RAG
+  EuropePMC  DOI         Sections    Chroma    OpenAI    + LLM
+  OpenAlex   Publisher   Refs/Tables FAISS     Jina
+```
 
-## Adding a new provider
+See [ARCHITECTURE.md](ARCHITECTURE.md) for full details.
 
-1. Create `search_service/providers/<name>.py` with a class subclassing
-   `BaseProvider` and implementing `search`, `search_by_date`,
-   `search_by_pmid`, `get_metadata`, `get_abstract`, `healthcheck`, plus a
-   `capabilities` instance of `ProviderCapabilities`.
-2. Register it in `PROVIDER_CLASSES` in `search_service/providers/__init__.py`.
-3. Add its `ProviderConfig` to `default_settings()` in
-   `search_service/config.py`.
+---
 
-`SearchService` is never modified — it depends only on the `BaseProvider` ABC.
+## Project Structure
+
+```
+lornewspaper/
+├── api/                    # FastAPI REST API (15 endpoints)
+├── research_agent/         # LLM orchestration
+├── search_service/         # Academic search (3 providers)
+├── download_service/       # PDF/XML download
+├── document_processing_service/ # PDF extraction
+├── knowledge_base/         # Chunking, embedding, storage
+├── web/                    # Next.js 15 frontend
+├── tests/                  # Backend tests (254)
+├── docs/                   # Documentation
+├── Dockerfile              # Backend container
+├── docker-compose.yml      # Full stack orchestration
+└── web/Dockerfile          # Frontend container
+```
+
+---
+
+## Deployment
+
+| Platform | Guide |
+|----------|-------|
+| Docker Compose | `docker compose --profile optional up -d` |
+| Railway | [docs/deployment.md](docs/deployment.md#railway) |
+| Fly.io | [docs/deployment.md](docs/deployment.md#flyio) |
+| Render | [docs/deployment.md](docs/deployment.md#render) |
+| DigitalOcean | [docs/deployment.md](docs/deployment.md#digitalocean) |
+
+---
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| API Framework | FastAPI |
+| Database | SQLite / PostgreSQL |
+| Vector Store | ChromaDB / FAISS / Qdrant |
+| LLM Providers | OpenAI, Anthropic, Google, Ollama |
+| Embeddings | Ollama, OpenAI, Jina, Voyage |
+| Frontend | Next.js 15, React 19, Tailwind 4 |
+| State | TanStack Query |
+| HTTP Client | openapi-fetch (typed) |
+| Container | Docker, Docker Compose |
+| CI/CD | GitHub Actions |
+
+---
 
 ## Testing
 
 ```bash
-pytest
+# Backend
+pytest                          # 254 unit + integration tests
+pytest tests/e2e -v             # Full pipeline e2e
+python tests/e2e/benchmark_runner.py --dataset smoke
+
+# Frontend
+cd web && npm test               # 10 component tests
+npx playwright test              # 24 e2e tests
 ```
 
-All tests use `respx` / `httpx.MockTransport` — no real network access.
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## Contributors
+
+<a href="https://github.com/anomalyco/lornewspaper/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=anomalyco/lornewspaper" />
+</a>
+
+---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=anomalyco/lornewspaper&type=Date)](https://star-history.com/#anomalyco/lornewspaper&Date)

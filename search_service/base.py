@@ -11,6 +11,7 @@ concrete provider.
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -149,7 +150,8 @@ class BaseProvider(ABC):
             )
             payload = raw.json()
             if response_model is not None:
-                data = response_model.model_validate(payload)
+                loop = asyncio.get_running_loop()
+                data = await loop.run_in_executor(None, response_model.model_validate, payload)
             else:
                 data = payload
             result = map_fn(data)

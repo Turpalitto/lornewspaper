@@ -1,0 +1,21 @@
+services:
+  clinical-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.clinical
+    image: clinical-assistant:latest
+    environment:
+      CGA_DEBUG: "${CGA_DEBUG:-false}"
+      CGA_LOG_LEVEL: "${CGA_LOG_LEVEL:-INFO}"
+      CGA_LLM_PROVIDER: "${CGA_LLM_PROVIDER:-openai}"
+      CGA_LLM_MODEL: "${CGA_LLM_MODEL:-gpt-4o}"
+      CGA_LLM_TEMPERATURE: "${CGA_LLM_TEMPERATURE:-0.1}"
+    ports:
+      - "${CLINICAL_PORT:-8001}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client; c=http.client.HTTPConnection('localhost:8000'); c.request('GET','/api/v1/clinical/health'); r=c.getresponse(); exit(0 if r.status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped

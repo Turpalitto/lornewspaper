@@ -1,0 +1,31 @@
+groups:
+  - name: lornews
+    interval: 1m
+    rules:
+      - alert: BackendDown
+        expr: up{job="lornews-backend"} == 0
+        for: 1m
+        annotations:
+          summary: "Backend is down"
+          description: "LORNEWS backend has been unreachable for 1 minute"
+
+      - alert: HighErrorRate
+        expr: rate(lornews_requests_total[5m]) > 0
+        for: 5m
+        annotations:
+          summary: "High request rate"
+          description: "More than 0 requests/sec sustained for 5 minutes"
+
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{name=~"backend|frontend"} > 1.5e9
+        for: 5m
+        annotations:
+          summary: "High memory usage"
+          description: "Container memory exceeds 1.5GB"
+
+      - alert: PipelineFailed
+        expr: time() - pipeline_last_success_seconds > 86400
+        for: 6h
+        annotations:
+          summary: "Daily pipeline has not completed"
+          description: "The daily pipeline has not run successfully in the last 24 hours"

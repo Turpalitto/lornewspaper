@@ -1,0 +1,2 @@
+# Cloudflare Pages proxy: /api/v1/* → Render backend
+/api/v1/*  https://lornews-backend.onrender.com/api/v1/:splat  200

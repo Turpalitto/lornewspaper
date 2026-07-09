@@ -1,0 +1,55 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Node / frontend
+node_modules/
+.next/
+npm-debug.log*
+
+# Data / runtime
+downloads/
+download_cache/
+process_cache/
+vector_store/
+knowledge_base.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs
+docs/
+
+# Tests
+tests/
+__tests__/
+
+# Misc
+opencode.json
+SESSION_HISTORY.md
+AGENTS.md
+README.md

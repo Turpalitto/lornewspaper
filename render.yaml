@@ -1,0 +1,89 @@
+# =============================================================================
+# LORNEWS — Render Blueprint (Infrastructure as Code)
+# https://render.com/docs/blueprint-spec
+# =============================================================================
+
+services:
+  # ── Frontend ─────────────────────────────────────────────────────────────
+  - type: web
+    name: lornews-frontend
+    runtime: node
+    repo: https://github.com/YOUR_USERNAME/lornewspaper
+    branch: main
+    buildCommand: cd web && npm ci && npm run build
+    startCommand: cd web && npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: lornews-backend
+          type: web
+          property: host
+      # The NEXT_PUBLIC_API_URL will be set to https://lornews-backend.onrender.com
+      # This tells the frontend where to proxy /api/v1/* requests
+
+  # ── Backend ──────────────────────────────────────────────────────────────
+  - type: web
+    name: lornews-backend
+    runtime: python
+    repo: https://github.com/YOUR_USERNAME/lornewspaper
+    branch: main
+    buildCommand: pip install -r requirements.txt && pip install -e . uvicorn[standard]
+    startCommand: uvicorn api.app:app --host 0.0.0.0 --port 10000
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: API_DEBUG
+        value: "false"
+      - key: API_LOG_LEVEL
+        value: INFO
+      - key: API_CORS_ORIGINS
+        value: https://lornews-frontend.onrender.com
+      - key: TRUSTED_HOSTS
+        value: lornews-backend.onrender.com,*.onrender.com
+      - key: SECRET_KEY
+        generateValue: true
+      - key: LLM_PROVIDER
+        value: openai
+      - key: LLM_API_KEY
+        sync: false  # You must set this manually in Render dashboard
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lornews-db
+          property: connectionString
+      - key: REDIS_URL
+        value: redis://default:YOUR_UPSTASH_PASSWORD@YOUR_UPSTASH_URL.upstash.io:6379
+        # ⚠️ Replace with your actual Upstash Redis URL
+      - key: QDRANT_URL
+        value: https://YOUR_CLUSTER.cloud.qdrant.io:6333
+        # ⚠️ Replace with your actual Qdrant Cloud URL
+      - key: ENABLE_METRICS
+        value: "true"
+      - key: ENABLE_RATE_LIMIT
+        value: "true"
+      - key: ENABLE_COMPRESSION
+        value: "true"
+
+databases:
+  - name: lornews-db
+    databaseName: lornews
+    user: lornews
+    plan: free
+    # ⚠️ Free tier: 1GB storage, expires after 90 days
+    # Upgrade to Starter ($7/mo) for persistent storage
+    ipAllowList: []  # Allow all connections (secured by Render network)
+
+  # ── Qdrant Cloud (external) ───────────────────────────────────────────────
+  # Sign up at https://cloud.qdrant.io
+  # Create a free cluster: 1GB storage, 1 node
+  # Copy the cluster URL and API key to QDRANT_URL and QDRANT_API_KEY env vars
+  # ⚠️ This is NOT managed by render.yaml — you must configure manually
+
+  # ── Upstash Redis (external) ─────────────────────────────────────────────
+  # Sign up at https://console.upstash.com
+  # Create a free Redis database: 10MB storage, 1000 commands/day
+  # Copy the REST URL and password to REDIS_URL env var
+  # ⚠️ This is NOT managed by render.yaml — you must configure manually
