@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from search_service.config import ProviderConfig
 from search_service.http_client import create_client
-from search_service.logging_config import RequestLog, get_logger
+from search_service.logging_config import RequestLog, get_logger, set_retries
 from search_service.rate_limit import AsyncRateLimiter
 from search_service.retry import TransientHTTPError, async_retry
 
@@ -138,6 +138,9 @@ class BaseProvider(ABC):
         mapping, raising on malformed provider payloads. Emits one structured
         log line per call with the resulting article count.
         """
+        # Reset retry counter so a previous call's retries don't leak into
+        # this request's log line.
+        set_retries(0)
         rl = RequestLog(self.name, endpoint, query, logger=self._logger)
         rl.__enter__()
         try:
@@ -152,7 +155,9 @@ class BaseProvider(ABC):
             result = map_fn(data)
             count = len(result) if isinstance(result, list) else (1 if result else 0)
             rl.result_count = count
-        except Exception:
+        except BaseException:
+            # Covers normal errors AND CancelledError: always emit the log line,
+            # but never suppress the exception.
             rl.result_count = 0
             rl.__exit__(*sys.exc_info())
             raise

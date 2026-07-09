@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from difflib import SequenceMatcher
 
 from search_service.models import Article
 
@@ -25,17 +26,25 @@ def normalize_title(title: str | None) -> str:
     return " ".join(cleaned.split())
 
 
-def titles_similar(a: str | None, b: str | None, threshold: float = 0.85) -> bool:
+def titles_similar(a: str | None, b: str | None, threshold: float = 0.9) -> bool:
+    """Conservative title-match used only as a dedup fallback.
+
+    Requires BOTH a high token-set Jaccard AND a high sequence ratio. This
+    avoids two failure modes of either metric alone:
+      * token-set Jaccard alone false-merges anagrams ("work 0 1" vs "work 1 0");
+      * sequence ratio alone false-merges templated titles that differ only by
+        a digit ("paper 0 x" vs "paper 1 x").
+    """
     na, nb = normalize_title(a), normalize_title(b)
     if not na or not nb:
         return False
     if na == nb:
         return True
-    sa, sb = set(na.split()), set(nb.split())
-    union = sa | sb
-    if not union:
-        return False
-    return len(sa & sb) / len(union) >= threshold
+    ta, tb = na.split(), nb.split()
+    union = set(ta) | set(tb)
+    jaccard = len(set(ta) & set(tb)) / len(union) if union else 0.0
+    seq = SequenceMatcher(None, na, nb).ratio()
+    return jaccard >= threshold and seq >= threshold
 
 
 def _same_identity(a: Article, b: Article) -> bool:

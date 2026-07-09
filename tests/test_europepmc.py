@@ -1,9 +1,10 @@
 """Tests for EuropePMCProvider via mocked REST API."""
 
+from urllib.parse import unquote
+
 import httpx
 import pytest
 import respx
-from urllib.parse import unquote
 
 from search_service.config import ProviderConfig
 from search_service.providers.europepmc import EuropePMCProvider
@@ -134,4 +135,21 @@ async def test_healthcheck():
     respx.get(url__regex=r".*/search").mock(return_value=httpx.Response(200, json={"resultList": {"result": []}}))
     p = _provider()
     assert await p.healthcheck() is True
+    await p.aclose()
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_search_by_date_single_bound():
+    from urllib.parse import unquote
+
+    route = respx.get(url__regex=r".*/search").mock(
+        return_value=httpx.Response(200, json={"resultList": {"result": [_record("1")]}})
+    )
+    p = _provider()
+    # Only a lower bound -> >= filter, not a range.
+    await p.search_by_date("covid", from_year=2020, to_year=None, limit=5)
+    q = unquote(str(route.calls.last.request.url))
+    assert "PUBLICATION_YEAR:>=2020" in q
+    assert "PUBLICATION_YEAR:2020-" not in q
     await p.aclose()

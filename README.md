@@ -82,6 +82,19 @@ from search_service.logging_config import configure_logging
 configure_logging("INFO", json_logs=True)
 ```
 
+Every provider call emits one structured line with: provider, endpoint, query,
+elapsed_ms, retries, status_code, result_count.
+
+## Errors
+
+- `SearchService.search_by_provider` raises `SearchServiceError`
+  (subclass of `ValueError`) for an unknown/disabled provider.
+- A failing provider never aborts the whole search: `search_all` /
+  `search_by_pmid` isolate per-provider errors and return the surviving
+  results.
+- Retries are transient-only (network, timeout, HTTP 429, 5xx) and honour
+  `Retry-After` via the rate limiter.
+
 ## Adding a new provider
 
 1. Create `search_service/providers/<name>.py` with a class subclassing

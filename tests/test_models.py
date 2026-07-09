@@ -1,6 +1,5 @@
 """Tests for the unified Article model."""
 
-import pytest
 
 from search_service.models import Article
 

@@ -1,6 +1,6 @@
 """Tests for deduplication and metadata merge."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from search_service.dedupe import deduplicate, titles_similar
 from search_service.models import Article
@@ -72,8 +72,8 @@ def test_merge_unions_lists_and_provenance():
 
 
 def test_merge_prefers_latest_retrieved_at():
-    older = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    newer = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    older = datetime(2020, 1, 1, tzinfo=UTC)
+    newer = datetime(2024, 1, 1, tzinfo=UTC)
     a = _article(doi="10.1/x", retrieved_at=older)
     b = _article(doi="10.1/x", retrieved_at=newer, source="openalex", provenance=["openalex"])
     merged = deduplicate([a, b])[0]
@@ -83,3 +83,26 @@ def test_merge_prefers_latest_retrieved_at():
 def test_titles_similar_threshold():
     assert titles_similar("Machine learning in bioinformatics", "Machine learning in bioinformatics!")
     assert not titles_similar("Alpha study", "Completely different beta examination")
+
+
+def test_dedupe_is_idempotent():
+    a = _article(doi="10.1/x", title="T")
+    b = _article(doi="10.1/x", title="T", source="openalex", provenance=["openalex"])
+    once = deduplicate([a, b])
+    twice = deduplicate(once)
+    assert twice == once
+
+
+def test_dedupe_order_independent():
+    # Same DOI set collapses to one record regardless of input order.
+    a = _article(doi="10.1/x")
+    b = _article(doi="10.1/x", source="openalex", provenance=["openalex"])
+    assert len(deduplicate([a, b])) == 1
+    assert len(deduplicate([b, a])) == 1
+
+
+def test_no_false_merge_on_anagram_titles():
+    # Token-set collision must NOT merge order-distinct titles.
+    a = _article(title="Work number 1 about cells")
+    b = _article(title="Work number 1 about tissue")
+    assert len(deduplicate([a, b])) == 2

@@ -15,6 +15,9 @@ from search_service.base import BaseProvider
 from search_service.config import ProviderCapabilities
 from search_service.models import Article
 
+# Europe PMC caps pageSize at 100.
+_MAX_LIMIT = 100
+
 
 class _SearchResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -37,9 +40,13 @@ class EuropePMCProvider(BaseProvider):
         limit: int = 20,
     ) -> list[Article]:
         if from_year or to_year:
-            lo = from_year or ""
-            hi = to_year or ""
-            query = f"{query} AND PUBLICATION_YEAR:{lo}-{hi}"
+            if from_year and to_year:
+                year_filter = f"PUBLICATION_YEAR:{from_year}-{to_year}"
+            elif from_year:
+                year_filter = f"PUBLICATION_YEAR:>={from_year}"
+            else:
+                year_filter = f"PUBLICATION_YEAR:<={to_year}"
+            query = f"{query} AND {year_filter}"
         return await self._run(query, limit)
 
     async def search_by_pmid(self, pmid: str) -> Article | None:
@@ -79,7 +86,7 @@ class EuropePMCProvider(BaseProvider):
         params = {
             "query": query,
             "format": "json",
-            "pageSize": limit,
+            "pageSize": max(1, min(limit, _MAX_LIMIT)),
             "resultType": "core",
         }
         return await self._fetch(

@@ -6,7 +6,7 @@ import respx
 from pydantic import BaseModel
 
 from search_service.base import BaseProvider
-from search_service.config import ProviderConfig, ProviderCapabilities
+from search_service.config import ProviderCapabilities, ProviderConfig
 
 
 class _StubModel(BaseModel):

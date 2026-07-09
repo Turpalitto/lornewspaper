@@ -34,6 +34,10 @@ class _EFetchResponse(BaseModel):
 
 _YEAR_RE = re.compile(r"(\d{4})")
 
+# Cap requested page sizes so a single call can't exhaust the API quota or
+# blow up response/memory size.
+_MAX_LIMIT = 100
+
 
 class PubMedProvider(BaseProvider):
     name = "pubmed"
@@ -97,14 +101,16 @@ class PubMedProvider(BaseProvider):
             "db": "pubmed",
             "term": query,
             "retmode": "json",
-            "retmax": limit,
+            "retmax": max(1, min(limit, _MAX_LIMIT)),
         }
         if datetype:
             params["datetype"] = datetype
+            # Use full dates: PubMed requires a parseable date, and a bare year
+            # is ambiguous. Open-ended bounds are simply omitted.
             if from_year:
-                params["mindate"] = from_year
+                params["mindate"] = f"{from_year}-01-01"
             if to_year:
-                params["maxdate"] = to_year
+                params["maxdate"] = f"{to_year}-12-31"
         result = await self._fetch(
             endpoint="/esearch.fcgi",
             params=params,

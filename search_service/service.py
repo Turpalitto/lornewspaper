@@ -17,6 +17,7 @@ import structlog
 from search_service.base import BaseProvider
 from search_service.config import Settings, default_settings
 from search_service.dedupe import deduplicate
+from search_service.exceptions import UnknownProviderError
 from search_service.http_client import create_client
 from search_service.logging_config import get_logger
 from search_service.providers import get_provider
@@ -54,6 +55,12 @@ class SearchService:
         if self._client is not None:
             await self._client.aclose()
 
+    async def __aenter__(self) -> SearchService:
+        return self
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        await self.aclose()
+
     # -- public API --------------------------------------------------------
     async def search_all(
         self,
@@ -86,7 +93,7 @@ class SearchService:
     ) -> list:
         provider = self._providers.get(provider_name)
         if provider is None:
-            raise ValueError(f"Unknown or disabled provider: {provider_name}")
+            raise UnknownProviderError(f"Unknown or disabled provider: {provider_name}")
         if from_year is not None or to_year is not None:
             articles = await provider.search_by_date(query, from_year, to_year, limit)
         else:

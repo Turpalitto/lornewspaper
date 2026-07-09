@@ -9,7 +9,7 @@ import httpx
 import pytest
 import respx
 
-from search_service.config import Settings, default_settings
+from search_service.config import default_settings
 from search_service.models import Article
 from search_service.service import SearchService
 from tests.stubs import ConcurrencyCounter, StubProvider

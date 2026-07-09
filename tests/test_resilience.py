@@ -1,6 +1,5 @@
 """Resilience tests: timeout, retry, and rate limiting at the provider level."""
 
-import asyncio
 import time
 
 import httpx

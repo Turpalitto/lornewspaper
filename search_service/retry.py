@@ -68,11 +68,13 @@ def _is_transient(exc: BaseException) -> bool:
 
 
 def _wait_with_retry_after(retry_state: tenacity.RetryCallState) -> float:
-    """Exponential jittered backoff, but immediately obey Retry-After if present."""
-    exc = retry_state.outcome.exception() if retry_state.outcome else None
-    if isinstance(exc, TransientHTTPError) and exc.retry_after is not None:
-        return float(exc.retry_after)
-    # exponential backoff with jitter: base 0.5s, cap 15s
+    """Exponential jittered backoff.
+
+    The rate limiter is responsible for honouring ``Retry-After`` (it pauses
+    the token bucket), so we deliberately do NOT also sleep the Retry-After
+    value here — that would double the wait. Exponential jitter gives a safe
+    spread for 5xx / network retries.
+    """
     return wait_exponential_jitter(initial=0.5, max=15)(retry_state)
 
 

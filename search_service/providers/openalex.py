@@ -16,6 +16,9 @@ from search_service.base import BaseProvider
 from search_service.config import ProviderCapabilities
 from search_service.models import Article
 
+# OpenAlex caps per-page at 200.
+_MAX_LIMIT = 200
+
 
 class _WorksResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -43,7 +46,7 @@ class OpenAlexProvider(BaseProvider):
     ) -> list[Article]:
         params = self._base_params()
         params["search"] = query
-        params["per-page"] = limit
+        params["per-page"] = max(1, min(limit, _MAX_LIMIT))
         filt = []
         if from_year:
             filt.append(f"from_publication_date:{from_year}-01-01")

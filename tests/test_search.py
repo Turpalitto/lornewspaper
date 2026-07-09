@@ -79,8 +79,19 @@ async def test_concurrency_limit_respected():
 
 
 def _limit_settings(limit: int):
-    from search_service.config import Settings, default_settings
+    from search_service.config import default_settings
 
     s = default_settings()
     s.concurrency_limit = limit
     return s
+
+
+@pytest.mark.asyncio
+async def test_async_context_manager_closes_client():
+    p = StubProvider([_art("pubmed", "10.1/a")], name="pubmed")
+    async with SearchService(providers=[p]) as svc:
+        results = await svc.search_all("query")
+    assert len(results) == 1
+    # After exiting the context, the shared client is closed.
+    assert svc._client.is_closed
+
