@@ -149,7 +149,9 @@ Merge rule:
 - Pick best non-null value per field across sources.
 - Union `keywords`, `mesh_terms`, `authors`, `publication_type`.
 - Append provider to `provenance`.
-- Keep earliest `retrieved_at` or latest—documented as latest wins for fields.
+- Scalar fields: latest non-null value wins (newer data preferred).
+- `retrieved_at`: latest timestamp wins.
+- `raw_response`: kept from the provider that supplied the primary record.
 
 ## 11. SearchService — `service.py`
 
