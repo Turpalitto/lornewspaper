@@ -90,6 +90,7 @@ class RequestLog:  # noqa: D101 - small helper, not part of public API
         self._endpoint = endpoint
         self._query = query
         self._start = 0.0
+        self.result_count: int = 0
 
     def __enter__(self) -> RequestLog:
         self._start = time.perf_counter()
