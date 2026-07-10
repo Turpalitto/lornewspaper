@@ -16,6 +16,19 @@ docker compose --profile optional up -d
 # → Docs at http://localhost:8000/api/v1/docs
 ```
 
+> **Live demo**: _Deploy free in 45 min → [FREE_DEPLOYMENT_GUIDE.md](docs/FREE_DEPLOYMENT_GUIDE.md) (Render + Cloudflare Pages + Supabase, $0/mo)_
+
+---
+
+## Feedback
+
+Every page has a 💬 button (bottom-right) to:
+- 🐞 **Report issue** → opens GitHub issue with bug template
+- 💡 **Suggest improvement** → opens GitHub issue with feature template
+- 👍/👎 **Rate today's digest** → stored locally, helps prioritize fixes
+
+We read every submission. Your feedback shapes the roadmap.
+
 ---
 
 ## Features
@@ -68,18 +81,20 @@ cd web && npm install && npm run dev
 
 ## Screenshots
 
-```
-┌─────────────────────────────────────────────────┐
-│  LORNEWS                                         │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────┐ │
-│  │ Search   │ │Documents │ │   Ask    │ │Ingest│ │
-│  │Literature│ │          │ │Question  │ │      │ │
-│  └──────────┘ └──────────┘ └──────────┘ └─────┘ │
-│  Academic literature research platform           │
-└─────────────────────────────────────────────────┘
-```
+| Home Dashboard | Literature Search | Document Detail |
+|:---:|:---:|:---:|
+| ![Home](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/home.png) | ![Search](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/search.png) | ![Documents](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/documents.png) |
 
-Pages: Home dashboard | Search with results | Document detail | RAG Q&A | Ingest pipeline | System settings
+| RAG Q&A | Ingest Pipeline | Editorial View |
+|:---:|:---:|:---:|
+| ![Ask](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/ask.png) | ![Ingest](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/ingest.png) | ![Editorial](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/editorial.png) |
+
+| Daily Digest | Discovery Feed | System Settings |
+|:---:|:---:|:---:|
+| ![Digest](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/digest.png) | ![Discovery](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/discovery.png) | ![Settings](https://raw.githubusercontent.com/anomalyco/lornewspaper/main/web/public/screenshots/settings.png) |
+
+> *Screenshots stored in `web/public/screenshots/`. Regenerate: `npx tsx screenshot_script.ts` from `web/`.*
+> *Demo GIF frames at `web/public/screenshots/demo_frames/`. Convert: `ffmpeg -framerate 0.5 -i ...%02d-*.png ... demo_flow.gif` or use https://ezgif.com/maker .*
 
 ---
 

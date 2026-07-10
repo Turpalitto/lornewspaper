@@ -58,8 +58,8 @@ services:
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY required}
       API_DEBUG: "false"
       API_LOG_LEVEL: "INFO"
-      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-https://dailyent.ai}
-      TRUSTED_HOSTS: ${TRUSTED_HOSTS:-dailyent.ai,api.dailyent.ai}
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-*}
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS:-*}
       LLM_PROVIDER: ${LLM_PROVIDER:-openai}
       LLM_API_KEY: ${LLM_API_KEY:-}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-lornews}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-lornews}
